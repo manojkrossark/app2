@@ -12,29 +12,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/* eslint-disable import/no-extraneous-dependencies */
 const express_1 = require("express");
+const json_diff_1 = require("json-diff");
 const Room_1 = __importDefault(require("../models/Room"));
 const logger_1 = require("../common/logger");
 const logLevels_1 = __importDefault(require("../constants/logLevels"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
-router.post("/create-room", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/create-room", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, projectName, roles, nodes, publicNotes, requestedUsers } = req.body;
         if (!roomId || !projectName || !roles) {
             res.status(404).json("Please provide roomId or project name or roles.");
             return;
         }
-        const room = new Room_1.default({ roomId, projectName, nodes, publicNotes, requestedUsers });
-        room.$set(`roles.${roles.uid}`, roles);
+        const room = new Room_1.default({ roomId, projectName, roles, nodes, publicNotes, requestedUsers });
+        // room.$set(`roles.${roles.uid}`, roles);
         yield room.save();
-        res.status(200).json({ message: "Successfully created room" });
-        (0, logger_1.logWithData)(logLevels_1.default.Info, "Room created", { method: `${req.method} ${req.url}`, body: req.body });
+        res.status(200).json({ room, message: "Successfully created room" });
     }
     catch (err) {
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Failed to create room", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.post("/get-room", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/get-room", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId } = req.body;
         if (!roomId) {
@@ -47,13 +49,12 @@ router.post("/get-room", (req, res) => __awaiter(void 0, void 0, void 0, functio
             return;
         }
         res.status(200).json(findedRoom);
-        (0, logger_1.logWithData)(logLevels_1.default.Info, "Fetched room", { method: `${req.method} ${req.url}`, body: req.body });
     }
     catch (err) {
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Failed to get room", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.post("/update-room", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/update-room", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, roles, projectName } = req.body;
         const findedRoom = yield Room_1.default.findOne({ roomId });
@@ -75,13 +76,12 @@ router.post("/update-room", (req, res) => __awaiter(void 0, void 0, void 0, func
         }
         yield findedRoom.save();
         res.status(200).json("Successfully updated room.");
-        (0, logger_1.logWithData)(logLevels_1.default.Error, "Updated room", { method: `${req.method} ${req.url}`, body: req === null || req === void 0 ? void 0 : req.body });
     }
     catch (err) {
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Failed to update room", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.get("/check-room-access", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/check-room-access", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
         const { roomId, uid } = req.query;
@@ -117,7 +117,7 @@ router.get("/check-room-access", (req, res) => __awaiter(void 0, void 0, void 0,
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Room access", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.patch("/update-room-user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.patch("/update-room-user", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, users } = req.body;
         if (!roomId) {
@@ -133,7 +133,7 @@ router.patch("/update-room-user", (req, res) => __awaiter(void 0, void 0, void 0
             res.status(404).json("Room no longer exists..");
             return;
         }
-        users.forEach((user) => __awaiter(void 0, void 0, void 0, function* () {
+        for (const user of users) {
             if (!(user === null || user === void 0 ? void 0 : user.ownerAction)) {
                 return;
             }
@@ -147,15 +147,18 @@ router.patch("/update-room-user", (req, res) => __awaiter(void 0, void 0, void 0
                 findedRoom.$set(`requestedUsers.${user.uid}`, undefined);
             }
             yield findedRoom.save();
-        }));
+        }
         res.status(200).json("Updated room user successfully");
+        return;
     }
     catch (err) {
-        res.status(404).json(err);
+        console.error("Error updating room user:", err);
         (0, logger_1.logWithData)(logLevels_1.default.Error, "update Room user", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
+        res.status(500).json("Internal Server Error");
+        return;
     }
 }));
-router.post("/join-room", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/join-room", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     try {
         const { roomId, user } = req.body;
@@ -189,7 +192,7 @@ router.post("/join-room", (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 }));
 // eslint-disable-next-line consistent-return
-router.get("/export", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/export", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId } = req.query;
         const data = yield Room_1.default.findOne({ roomId }).lean().exec();
@@ -204,25 +207,37 @@ router.get("/export", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(500).json({ error: "Internal server error" });
     }
 }));
-router.patch("/import", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.patch("/import", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _d;
     try {
-        const { roomId, roomData } = req.body;
+        const { roomId, roomData, isOverride } = req.body;
         const findedRoom = yield Room_1.default.findOne({ roomId });
         if (!findedRoom) {
             res.status(404).json("Room no longer exists..");
             return;
         }
+        const parsedRoom = JSON.parse(JSON.stringify(findedRoom));
         const parsedRoomData = JSON.parse(roomData);
+        if (!isOverride) {
+            const difference = (0, json_diff_1.diff)(parsedRoom, parsedRoomData);
+            if (difference) {
+                difference === null || difference === void 0 ? true : delete difference.updatedAt;
+            }
+            if (difference && ((_d = Object.values(difference)) === null || _d === void 0 ? void 0 : _d.length) > 0) {
+                res.status(200).json({ hasDifference: true });
+                return;
+            }
+        }
         findedRoom.$set(`nodes`, parsedRoomData.nodes);
         findedRoom.$set(`publicNotes`, parsedRoomData.publicNotes);
         yield findedRoom.save();
         res.status(200).json(findedRoom);
     }
     catch (error) {
-        (0, logger_1.logWithData)(logLevels_1.default.Error, "Import deck", { method: `${req.method} ${req.url}`, error, body: req === null || req === void 0 ? void 0 : req.query });
+        (0, logger_1.logWithData)(logLevels_1.default.Error, "Import deck", { method: `${req.method} ${req.url}`, error, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.post("/delete-room", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/delete-room", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId } = req.body;
         if (!roomId) {
@@ -240,7 +255,7 @@ router.post("/delete-room", (req, res) => __awaiter(void 0, void 0, void 0, func
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Room access", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.post("/get-all-rooms", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/get-all-rooms", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { uid } = req.body;
         if (!uid) {

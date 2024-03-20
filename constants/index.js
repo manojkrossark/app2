@@ -7,5 +7,5 @@ exports.NOUN_URL = "https://api.thenounproject.com";
 exports.NOUN_API_URL = "https://api.thenounproject.com/v2/icon?query=";
 exports.SEND_GRID_KEY = "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";
 exports.SALT_ROUNDS = 8;
-exports.PAYLOAD_SIZE = "10mb";
+exports.PAYLOAD_SIZE = "50mb";
 //# sourceMappingURL=index.js.map

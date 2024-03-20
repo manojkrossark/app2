@@ -34,7 +34,7 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 app.use(bodyParser.json({ limit: constants_1.PAYLOAD_SIZE }));
-app.use(bodyParser.urlencoded({ limit: constants_1.PAYLOAD_SIZE, extended: true, parameterLimit: 100000 }));
+app.use(bodyParser.urlencoded({ limit: constants_1.PAYLOAD_SIZE, extended: true, parameterLimit: 5000000 }));
 app.use(express_1.default.json());
 app.get("/", (_, res) => {
     res.send("SLATE BACKEND SERVER IS RUNNING!");
@@ -51,6 +51,9 @@ app.use("/api/icon", Icons_1.default);
 const server = http_1.default.createServer(app);
 const roomUsers = new Map(); // currently online users for each room
 const io = new socket_io_1.Server(server, {
+    pingInterval: 24 * 60 * 60 * 1000,
+    pingTimeout: 3 * 24 * 60 * 60 * 1000,
+    transports: ["websocket", "polling"],
     cors: {
         origin: "*",
         methods: ["GET", "POST"],

@@ -23,6 +23,7 @@ const Icon_1 = __importDefault(require("../models/Icon"));
 const logger_1 = require("../common/logger");
 const logLevels_1 = __importDefault(require("../constants/logLevels"));
 const Room_1 = __importDefault(require("../models/Room"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
 const removeDuplicates = (arr, idProperty) => {
     const seenIds = new Set();
@@ -35,7 +36,7 @@ const removeDuplicates = (arr, idProperty) => {
         return false;
     });
 };
-router.get("/fetch-icons", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/fetch-icons", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const searchKeyword = req.query.keyword;

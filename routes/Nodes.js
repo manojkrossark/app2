@@ -17,8 +17,9 @@ const Room_1 = __importDefault(require("../models/Room"));
 const logger_1 = require("../common/logger");
 const logLevels_1 = __importDefault(require("../constants/logLevels"));
 const sendEmail_1 = __importDefault(require("../common/sendEmail"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
-router.post("/save-updated-node", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/save-updated-node", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const { roomId, nodes, pageName } = req.body;
@@ -37,14 +38,15 @@ router.post("/save-updated-node", (req, res) => __awaiter(void 0, void 0, void 0
                     findedRoom.$set("nodes", previousNodes);
                 });
                 yield findedRoom.save();
-                res.status(200).json("Updated nodes Successfully!");
+                res.status(200).json({ message: "Updated nodes Successfully!", nodes: findedRoom.nodes });
                 return;
             }
             const nodeId = nodeKeys[0];
             const updateObject = {};
             updateObject[`nodes.${pageName}.nodes.${nodeId}`] = payload[nodeId];
             yield Room_1.default.updateOne({ roomId }, { $set: updateObject });
-            res.status(200).json("Updated node Successfully!");
+            const actualNode = yield Room_1.default.findOne({ roomId });
+            res.status(200).json({ message: "Updated node Successfully!", nodes: actualNode === null || actualNode === void 0 ? void 0 : actualNode.nodes });
         }
         else {
             res.status(404).json("Could not found room.");
@@ -54,7 +56,7 @@ router.post("/save-updated-node", (req, res) => __awaiter(void 0, void 0, void 0
         (0, logger_1.logWithData)(logLevels_1.default.Error, "Failed to update node", { method: `${req.method} ${req.url}`, err, body: req === null || req === void 0 ? void 0 : req.body });
     }
 }));
-router.post("/save-updated-publicNotes-node", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/save-updated-publicNotes-node", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _b;
     try {
         const { roomId, nodes } = req.body;
@@ -84,7 +86,7 @@ router.post("/save-updated-publicNotes-node", (req, res) => __awaiter(void 0, vo
         });
     }
 }));
-router.patch("/add-group-nodes", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.patch("/add-group-nodes", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     try {
         const { roomId, selectedNodeIds, pageName } = req.body;
@@ -114,7 +116,7 @@ router.patch("/add-group-nodes", (req, res) => __awaiter(void 0, void 0, void 0,
         });
     }
 }));
-router.get("/get-group-nodes", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/get-group-nodes", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, pageName } = req.query;
         if (!roomId) {
@@ -136,7 +138,7 @@ router.get("/get-group-nodes", (req, res) => __awaiter(void 0, void 0, void 0, f
         });
     }
 }));
-router.post("/add-new-page", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/add-new-page", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, nodes } = req.body;
         if (!roomId) {
@@ -162,7 +164,7 @@ router.post("/add-new-page", (req, res) => __awaiter(void 0, void 0, void 0, fun
         });
     }
 }));
-router.post("/save-deleted-node", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/save-deleted-node", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _d, _e;
     try {
         const { roomId, nodesToUpdate, nodesToDelete, pageName } = req.body;
@@ -186,7 +188,7 @@ router.post("/save-deleted-node", (req, res) => __awaiter(void 0, void 0, void 0
                 findedRoom.$set("nodes", currentNodes);
             });
             yield findedRoom.save();
-            res.status(200).json("Deleted Successfully!");
+            res.status(200).json({ message: "Deleted Successfully!", nodes: findedRoom === null || findedRoom === void 0 ? void 0 : findedRoom.nodes });
         }
         else {
             res.status(404).json("Could not found room.");
@@ -200,7 +202,7 @@ router.post("/save-deleted-node", (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
 }));
-router.post("/publicNotes-deleted-node", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/publicNotes-deleted-node", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _f, _g;
     try {
         const { roomId, nodesToUpdate, nodesToDelete } = req.body;
@@ -238,7 +240,7 @@ router.post("/publicNotes-deleted-node", (req, res) => __awaiter(void 0, void 0,
         });
     }
 }));
-router.post("/save-updated-icon", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/save-updated-icon", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _h;
     try {
         const { roomId, iconListToUpdate } = req.body;
@@ -269,7 +271,7 @@ router.post("/save-updated-icon", (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
 }));
-router.post("/delete-deck-page", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/delete-deck-page", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, pageName } = req.body;
         if (!roomId) {
@@ -299,7 +301,7 @@ router.post("/delete-deck-page", (req, res) => __awaiter(void 0, void 0, void 0,
         });
     }
 }));
-router.post("/undo-redo-delete", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/undo-redo-delete", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, nextHistory, pageName } = req.body;
         if (!roomId) {
@@ -340,7 +342,7 @@ router.post("/undo-redo-delete", (req, res) => __awaiter(void 0, void 0, void 0,
         });
     }
 }));
-router.post("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/send-email", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { to, subject, text, from, cc } = req.body;
     if (!to || !subject || !text || !from) {
         res.status(400).json({ error: "Missing required fields" });
@@ -362,7 +364,7 @@ router.post("/send-email", (req, res) => __awaiter(void 0, void 0, void 0, funct
         res.status(500).json({ error: "Internal server error" });
     }
 }));
-router.post("/get-usersemail", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/get-users-email", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId } = req.body;
         if (!roomId) {
@@ -392,7 +394,7 @@ router.post("/get-usersemail", (req, res) => __awaiter(void 0, void 0, void 0, f
         res.status(500).json({ error: "Internal Server Error" });
     }
 }));
-router.post("/rename-deck", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/rename-deck", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { roomId, updatedName, pageName } = req.body;
         if (!roomId) {

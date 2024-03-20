@@ -25,6 +25,7 @@ const User_1 = __importDefault(require("../models/User"));
 const Room_1 = __importDefault(require("../models/Room"));
 const generateToken_1 = __importDefault(require("../common/generateToken"));
 const passwordResetController_1 = __importDefault(require("../controllers/passwordResetController"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require("google-auth-library");
 const router = (0, express_1.Router)();
@@ -145,7 +146,7 @@ const sendInvites = (uid, roomId, mailFrom, mailTo) => __awaiter(void 0, void 0,
         throw new Error(`Error sending email - ${error}`);
     }
 });
-router.post("/invite-users", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/invite-users", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { users } = req.body;
         if (!users || (users && (users === null || users === void 0 ? void 0 : users.length) === 0)) {

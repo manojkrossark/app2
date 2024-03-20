@@ -17,8 +17,9 @@ const Tag_1 = __importDefault(require("../models/Tag"));
 const logger_1 = require("../common/logger");
 const logLevels_1 = __importDefault(require("../constants/logLevels"));
 const fetchIcons_1 = require("../utils/fetchIcons");
+const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
-router.post("/get-tags", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post("/get-tags", authMiddleware_1.authenticateUser, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const { keyword } = req.body;
@@ -27,6 +28,10 @@ router.post("/get-tags", (req, res) => __awaiter(void 0, void 0, void 0, functio
             return;
         }
         const data = yield Tag_1.default.find({ tag: new RegExp(keyword, "i") });
+        if (!data || (data === null || data === void 0 ? void 0 : data.length) === 0) {
+            res.status(404).send({ message: "No Icon found" });
+            return;
+        }
         const parsedData = JSON.parse(JSON.stringify(data));
         const promises = (_a = parsedData[0].imageUrls) === null || _a === void 0 ? void 0 : _a.map((image) => __awaiter(void 0, void 0, void 0, function* () {
             const base64Data = yield (0, fetchIcons_1.fetchData)(image);
